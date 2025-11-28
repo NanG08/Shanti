@@ -110,7 +110,7 @@ Shanti automatically routes tasks depending on connectivity.
     * Extend voice support to all major Indian languages and global languages.
     * Includes offline STT/TTS models for regional languages.
 
-2. _Full On-Device LLM_
+2. _Fully On-Device LLM_
 
     Move towards:
     
@@ -183,4 +183,4 @@ Shanti automatically routes tasks depending on connectivity.
 * Shanti does not store or remember interactions across sessions.
 
 ---
-### Made with 💗 for 
+### Made with 💗 for YuviAI
