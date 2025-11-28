@@ -45,5 +45,13 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+	<!-- Permissions requested by the Shanti web/back app: microphone, camera, geolocation -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Shanti requires the microphone to listen for voice commands and enable voice interactions.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Shanti requires camera access for live OCR and image-based assistance.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Shanti requests location to provide emergency alerts and location-based assistance.</string>
 </dict>
 </plist>

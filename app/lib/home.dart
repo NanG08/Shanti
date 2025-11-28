@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 import 'services/tts_service.dart';
 import 'services/ocr_service.dart';
+import 'services/permission_service.dart';
 
 class VoiceHome extends StatefulWidget {
 	const VoiceHome({super.key});
@@ -22,7 +23,20 @@ class _VoiceHomeState extends State<VoiceHome> {
 	@override
 	void initState() {
 		super.initState();
-		_tts.init();
+		_initializeServices();
+	}
+
+	Future<void> _initializeServices() async {
+		final permService = PermissionService();
+		final ok = await permService.ensureCorePermissions();
+		await _tts.init();
+		if (!ok) {
+			// Inform the user via TTS and a visual snackbar
+			await _tts.speakSlowClear('Some permissions were not granted. Please enable microphone, camera and location in app settings for full functionality.');
+			if (mounted) {
+				ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Microphone, Camera or Location permission not granted')));
+			}
+		}
 	}
 
 	@override
@@ -63,52 +77,155 @@ class _VoiceHomeState extends State<VoiceHome> {
 
 	@override
 	Widget build(BuildContext context) {
+		final colors = Theme.of(context).colorScheme;
 		return Scaffold(
 			appBar: AppBar(
-				title: const Text('Shanti - Demo'),
+				title: Text('Shanti', style: Theme.of(context).textTheme.titleLarge),
+				backgroundColor: colors.surface,
 			),
-			body: Padding(
-				padding: const EdgeInsets.all(16.0),
-				child: SingleChildScrollView(
+			body: SafeArea(
+				child: Padding(
+					padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
 					child: Column(
 						crossAxisAlignment: CrossAxisAlignment.stretch,
 						children: [
-							ElevatedButton.icon(
-								onPressed: _simulateWake,
-								icon: const Icon(Icons.mic),
-								label: const Text('Simulate "Shanti" wake'),
+							// Status row
+							Row(
+								mainAxisAlignment: MainAxisAlignment.spaceBetween,
+								children: [
+									Row(
+										children: [
+											Container(
+												padding: const EdgeInsets.all(8),
+												decoration: BoxDecoration(
+													color: colors.primary,
+													borderRadius: BorderRadius.circular(8),
+												),
+												child: const Icon(Icons.headset_mic, color: Colors.white, size: 28),
+											),
+											const SizedBox(width: 12),
+											Column(
+												crossAxisAlignment: CrossAxisAlignment.start,
+												children: [
+													Text('Voice Assistant', style: Theme.of(context).textTheme.labelLarge),
+													const SizedBox(height: 4),
+													Text('Tap the circle to wake Shanti', style: Theme.of(context).textTheme.bodyMedium),
+												],
+											),
+										],
+									),
+									// Online / Offline badge placeholder
+									Container(
+										padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+										decoration: BoxDecoration(
+											color: colors.secondary,
+											borderRadius: BorderRadius.circular(12),
+										),
+										child: Text('Offline', style: TextStyle(color: colors.onSecondary, fontWeight: FontWeight.bold)),
+									)
+								],
 							),
-							const SizedBox(height: 16),
-							TextField(
-								controller: _textController,
-								decoration: const InputDecoration(
-									labelText: 'Text to speak',
-									border: OutlineInputBorder(),
+
+							const SizedBox(height: 18),
+
+							// Big orb / primary action
+							Center(
+								child: Semantics(
+									button: true,
+									label: 'Wake Shanti',
+									child: GestureDetector(
+										onTap: _simulateWake,
+										child: Container(
+											width: 140,
+											height: 140,
+											decoration: BoxDecoration(
+												shape: BoxShape.circle,
+												gradient: RadialGradient(
+													colors: [colors.primary, colors.surface],
+												),
+												boxShadow: [
+													BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 12, offset: const Offset(0,6)),
+												],
+											),
+											child: const Center(
+												child: Icon(Icons.mic, size: 56, color: Colors.white),
+											),
+										),
+									),
 								),
-								minLines: 1,
-								maxLines: 4,
 							),
+
+							const SizedBox(height: 18),
+
+							// Action cards (large)
+							Expanded(
+								child: GridView.count(
+									crossAxisCount: 1,
+									childAspectRatio: 4.5,
+									mainAxisSpacing: 12,
+									physics: const NeverScrollableScrollPhysics(),
+									children: [
+										ElevatedButton.icon(
+											onPressed: _pickImageAndOcr,
+											icon: const Icon(Icons.photo, size: 36),
+											label: const Text('Read Photo Aloud', style: TextStyle(fontSize: 20)),
+											style: ElevatedButton.styleFrom(
+												backgroundColor: colors.surface,
+												foregroundColor: colors.onSurface,
+												padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+												shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+											),
+										),
+
+										ElevatedButton.icon(
+											onPressed: _speakText,
+											icon: const Icon(Icons.volume_up, size: 36),
+											label: const Text('Speak Text (clear)', style: TextStyle(fontSize: 20)),
+											style: ElevatedButton.styleFrom(
+												backgroundColor: colors.surface,
+												foregroundColor: colors.onSurface,
+												padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+												shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+											),
+										),
+
+										ElevatedButton.icon(
+											onPressed: () async {
+												await _tts.speakSlowClear('Emergency help is on the way.');
+												// placeholder for emergency action
+											},
+											icon: const Icon(Icons.warning_amber_sharp, size: 36),
+											label: const Text('Emergency', style: TextStyle(fontSize: 20)),
+											style: ElevatedButton.styleFrom(
+												backgroundColor: Colors.redAccent,
+												foregroundColor: Colors.white,
+												padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+												shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+											),
+										),
+									],
+								),
+							),
+
+							// OCR result / small controls at bottom
 							const SizedBox(height: 8),
-							ElevatedButton(
-								onPressed: _speakText,
-								child: const Text('Speak text (slow & clear)'),
-							),
-							const SizedBox(height: 16),
-							ElevatedButton.icon(
-								onPressed: _pickImageAndOcr,
-								icon: const Icon(Icons.photo),
-								label: const Text('Pick image & OCR'),
-							),
-							const SizedBox(height: 12),
-							const Text('OCR Result:', style: TextStyle(fontWeight: FontWeight.bold)),
+							const Divider(color: Colors.white24),
+							const SizedBox(height: 8),
+							Text('OCR Result', style: Theme.of(context).textTheme.labelLarge),
 							const SizedBox(height: 8),
 							Container(
+								constraints: const BoxConstraints(minHeight: 80, maxHeight: 200),
 								padding: const EdgeInsets.all(12),
 								decoration: BoxDecoration(
-									border: Border.all(color: Colors.grey.shade300),
-									borderRadius: BorderRadius.circular(6),
+									color: Theme.of(context).colorScheme.surface,
+									borderRadius: BorderRadius.circular(10),
 								),
-								child: Text(_ocrResult.isEmpty ? 'No result yet.' : _ocrResult),
+								child: SingleChildScrollView(
+									child: Text(
+										_ocrResult.isEmpty ? 'No text detected yet. Use "Read Photo Aloud" to pick an image.' : _ocrResult,
+										style: Theme.of(context).textTheme.bodyLarge,
+									),
+								),
 							),
 						],
 					),
